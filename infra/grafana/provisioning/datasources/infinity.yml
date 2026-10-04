@@ -1,0 +1,11 @@
+apiVersion: 1
+datasources:
+  - name: Rides API
+    type: yesoreyeram-infinity-datasource
+    uid: rides-api
+    access: proxy
+    isDefault: true
+    jsonData:
+      auth_method: none
+      allowedHosts:
+        - http://host.docker.internal:8000

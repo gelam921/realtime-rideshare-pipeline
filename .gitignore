@@ -1,0 +1,22 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Local logs
+logs/
+
+# Secrets / local config
+.env
+
+# Spark local artifacts
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Data lake, in case LAKE_ROOT is ever pointed inside the project
+rides-lake/
+
+# macOS
+.DS_Store

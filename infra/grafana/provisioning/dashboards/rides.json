@@ -1,0 +1,354 @@
+{
+  "uid": "rides-pipeline",
+  "title": "Rideshare Pipeline",
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "tags": [
+    "rideshare"
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Dead-letter events by reason",
+      "type": "bargauge",
+      "description": "Malformed events rejected by validation.py. Anything here means a producer is sending bad data.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "rides-api"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "rides-api"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "http://host.docker.internal:8000/dlq_summary",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "error_reason",
+              "text": "error_reason",
+              "type": "string"
+            },
+            {
+              "selector": "n",
+              "text": "n",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "values": true,
+          "calcs": [],
+          "fields": "/^n$/"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Total rides per zone",
+      "type": "barchart",
+      "description": "All completed rides in the lake, deduped to the latest revision of each 5-minute window.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "rides-api"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 16,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "rides-api"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "http://host.docker.internal:8000/rides_per_zone",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "zone",
+              "text": "zone",
+              "type": "string"
+            },
+            {
+              "selector": "total_rides",
+              "text": "total_rides",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "xField": "zone",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Rides completed per 5-minute window",
+      "type": "timeseries",
+      "description": "One line per zone. The newest window can still rise while late events arrive.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "rides-api"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "rides-api"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "http://host.docker.internal:8000/rides_over_time",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "window_start",
+              "text": "window_start",
+              "type": "timestamp"
+            },
+            {
+              "selector": "zone",
+              "text": "zone",
+              "type": "string"
+            },
+            {
+              "selector": "rides_completed",
+              "text": "rides_completed",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "zone"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Anomalies (live scan)",
+      "type": "table",
+      "description": "Settled windows whose ride count is far from the zone's previous hour. See anomalies.py.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "rides-api"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "rides-api"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "http://host.docker.internal:8000/anomalies",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "window_start",
+              "text": "window_start",
+              "type": "timestamp"
+            },
+            {
+              "selector": "zone",
+              "text": "zone",
+              "type": "string"
+            },
+            {
+              "selector": "kind",
+              "text": "kind",
+              "type": "string"
+            },
+            {
+              "selector": "rides",
+              "text": "rides",
+              "type": "number"
+            },
+            {
+              "selector": "baseline_mean",
+              "text": "baseline_mean",
+              "type": "number"
+            },
+            {
+              "selector": "z_score",
+              "text": "z_score",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "options": {},
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Alert history",
+      "type": "table",
+      "description": "Durable alerts written by alert_job.py (newest first).",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "rides-api"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "rides-api"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "http://host.docker.internal:8000/alerts",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "detected_at",
+              "text": "detected_at",
+              "type": "timestamp"
+            },
+            {
+              "selector": "window_start",
+              "text": "window_start",
+              "type": "timestamp"
+            },
+            {
+              "selector": "zone",
+              "text": "zone",
+              "type": "string"
+            },
+            {
+              "selector": "kind",
+              "text": "kind",
+              "type": "string"
+            },
+            {
+              "selector": "rides",
+              "text": "rides",
+              "type": "number"
+            },
+            {
+              "selector": "z_score",
+              "text": "z_score",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "options": {},
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ],
+  "editable": true
+}
